@@ -247,14 +247,31 @@ class ExcelComparator:
         }
         
         try:
-            # Copy template file to output location
-            shutil.copy2(template_file, output_file)
-            self.log_message(f"Template copied to: {output_file.name}", "INFO")
-            
-            # Load workbooks - handle both .xlsx and .xls formats
+            # Load workbooks first - handle both .xlsx and .xls formats
             new_wb = self.load_workbook(new_file)
             prev_wb = self.load_workbook(prev_file)
-            output_wb = self.load_workbook(output_file)
+            template_wb = self.load_workbook(template_file)
+            
+            # Create output workbook by copying template structure
+            output_wb = openpyxl.Workbook()
+            
+            # Remove default sheet
+            if 'Sheet' in output_wb.sheetnames:
+                output_wb.remove(output_wb['Sheet'])
+            
+            # Copy all sheets from template
+            for sheet_name in template_wb.sheetnames:
+                template_sheet = template_wb[sheet_name]
+                new_sheet = output_wb.create_sheet(title=sheet_name)
+                
+                # Copy data from template (without complex formatting)
+                for row in template_sheet.iter_rows():
+                    for cell in row:
+                        if cell.value is not None:
+                            new_cell = new_sheet.cell(row=cell.row, column=cell.column)
+                            new_cell.value = cell.value
+            
+            self.log_message(f"Template structure copied to: {output_file.name}", "INFO")
             
         except Exception as e:
             error_msg = f"Error loading workbooks: {str(e)}"
@@ -320,6 +337,7 @@ class ExcelComparator:
             try:
                 new_wb.close()
                 prev_wb.close()
+                template_wb.close()
                 output_wb.close()
             except:
                 pass
@@ -592,3 +610,4 @@ def main():
 
 
 if __name__ == "__main__":
+    main()
