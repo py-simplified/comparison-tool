@@ -20,6 +20,13 @@ from datetime import datetime
 import sys
 import traceback
 
+# Optional import for .xls support
+try:
+    import xlrd
+    XLS_SUPPORT = True
+except ImportError:
+    XLS_SUPPORT = False
+
 class ExcelComparator:
     def __init__(self, base_path):
         """
@@ -110,28 +117,39 @@ class ExcelComparator:
     def get_matching_files(self):
         """
         Get list of Excel files that exist in all three folders
+        Supports both .xlsx and .xls formats
         
         Returns:
             list: List of file names present in all folders
         """
         try:
-            new_files = set(f.name for f in self.new_folder.glob("*.xlsx") if not f.name.startswith('~'))
-            prev_files = set(f.name for f in self.prev_folder.glob("*.xlsx") if not f.name.startswith('~'))
-            template_files = set(f.name for f in self.template_folder.glob("*.xlsx") if not f.name.startswith('~'))
+            # Get both .xlsx and .xls files
+            new_xlsx = set(f.name for f in self.new_folder.glob("*.xlsx") if not f.name.startswith('~'))
+            new_xls = set(f.name for f in self.new_folder.glob("*.xls") if not f.name.startswith('~'))
+            new_files = new_xlsx.union(new_xls)
+            
+            prev_xlsx = set(f.name for f in self.prev_folder.glob("*.xlsx") if not f.name.startswith('~'))
+            prev_xls = set(f.name for f in self.prev_folder.glob("*.xls") if not f.name.startswith('~'))
+            prev_files = prev_xlsx.union(prev_xls)
+            
+            template_xlsx = set(f.name for f in self.template_folder.glob("*.xlsx") if not f.name.startswith('~'))
+            template_xls = set(f.name for f in self.template_folder.glob("*.xls") if not f.name.startswith('~'))
+            template_files = template_xlsx.union(template_xls)
             
             # Get files that exist in all three folders
             common_files = new_files.intersection(prev_files).intersection(template_files)
             
             if not common_files:
                 self.log_message("No matching Excel files found in all three folders", "WARNING")
-                self.log_message(f"New folder files: {list(new_files)}", "INFO")
-                self.log_message(f"Prev folder files: {list(prev_files)}", "INFO")
-                self.log_message(f"Template folder files: {list(template_files)}", "INFO")
+                self.log_message(f"New folder files (.xlsx/.xls): {list(new_files)}", "INFO")
+                self.log_message(f"Prev folder files (.xlsx/.xls): {list(prev_files)}", "INFO")
+                self.log_message(f"Template folder files (.xlsx/.xls): {list(template_files)}", "INFO")
                 return []
             
-            self.log_message(f"Found {len(common_files)} matching files", "SUCCESS")
+            self.log_message(f"Found {len(common_files)} matching files (both .xlsx and .xls supported)", "SUCCESS")
             for file in sorted(common_files):
-                self.log_message(f"  📄 {file}", "INFO")
+                file_ext = "📄" if file.endswith('.xlsx') else "📋"
+                self.log_message(f"  {file_ext} {file}", "INFO")
             
             return list(sorted(common_files))
             
@@ -158,6 +176,58 @@ class ExcelComparator:
         except (ValueError, TypeError):
             return False
     
+    def load_workbook(self, file_path):
+        """
+        Load an Excel workbook, handling both .xlsx and .xls formats
+        
+        Args:
+            file_path (Path): Path to the Excel file
+            
+        Returns:
+            Workbook object
+        """
+        try:
+            file_str = str(file_path)
+            
+            if file_str.endswith('.xls'):
+                if not XLS_SUPPORT:
+                    self.log_message("Warning: xlrd package not installed. .xls files may not work properly.", "WARNING")
+                    self.log_message("Install xlrd with: pip install xlrd", "INFO")
+                    # Try to load as .xlsx anyway (might work if it's actually .xlsx with .xls extension)
+                    return openpyxl.load_workbook(file_path, data_only=True)
+                
+                # For .xls files, use pandas to read and convert to openpyxl
+                # This is a workaround since openpyxl doesn't support .xls directly
+                
+                # Read all sheets from .xls file
+                xls_data = pd.read_excel(file_path, sheet_name=None, engine='xlrd')
+                
+                # Create a new .xlsx workbook
+                temp_xlsx_path = file_path.with_suffix('.temp.xlsx')
+                
+                with pd.ExcelWriter(temp_xlsx_path, engine='openpyxl') as writer:
+                    for sheet_name, df in xls_data.items():
+                        df.to_excel(writer, sheet_name=sheet_name, index=False)
+                
+                # Load the converted .xlsx file
+                wb = openpyxl.load_workbook(temp_xlsx_path, data_only=True)
+                
+                # Clean up temp file
+                try:
+                    temp_xlsx_path.unlink()
+                except:
+                    pass  # Ignore cleanup errors
+                
+                return wb
+                
+            else:
+                # For .xlsx files, use openpyxl directly
+                return openpyxl.load_workbook(file_path, data_only=True)
+                
+        except Exception as e:
+            self.log_message(f"Error loading {file_path}: {str(e)}", "ERROR")
+            raise
+    
     def compare_sheets(self, new_file, prev_file, template_file, output_file):
         """
         Compare all sheets in the Excel files and highlight differences
@@ -181,10 +251,10 @@ class ExcelComparator:
             shutil.copy2(template_file, output_file)
             self.log_message(f"Template copied to: {output_file.name}", "INFO")
             
-            # Load workbooks
-            new_wb = openpyxl.load_workbook(new_file, data_only=True)
-            prev_wb = openpyxl.load_workbook(prev_file, data_only=True)
-            output_wb = openpyxl.load_workbook(output_file)
+            # Load workbooks - handle both .xlsx and .xls formats
+            new_wb = self.load_workbook(new_file)
+            prev_wb = self.load_workbook(prev_file)
+            output_wb = self.load_workbook(output_file)
             
         except Exception as e:
             error_msg = f"Error loading workbooks: {str(e)}"
@@ -405,6 +475,7 @@ class ExcelComparator:
         
         print("\n" + "="*60)
         print("🚀 Excel Comparison Tool - Advanced Version")
+        print("📋 Supports both .xlsx and .xls formats")
         print("="*60)
         self.log_message(f"Working directory: {self.base_path}", "INFO")
         
@@ -430,9 +501,10 @@ class ExcelComparator:
             prev_file = self.prev_folder / file_name
             template_file = self.template_folder / file_name
             
-            # Create output filename
+            # Create output filename - always save as .xlsx for better compatibility
             name_parts = file_name.rsplit('.', 1)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            # Force .xlsx extension for output regardless of input format
             output_name = f"{name_parts[0]}_COMPARISON_{timestamp}.xlsx"
             output_file = self.output_folder / output_name
             
