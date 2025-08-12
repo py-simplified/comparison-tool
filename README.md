@@ -15,8 +15,7 @@ An intelligent Python automation tool that compares Excel files between two vers
 - 🎯 **Visual Highlighting**: Differences are highlighted in red background with white bold text
 - 🛡️ **Comprehensive Error Handling**: Handles various data types and edge cases
 - 📊 **Detailed Reporting**: Advanced version includes comprehensive reports and statistics
-- 🔒 **Password Protection**: 4-digit password security to prevent unauthorized access
-- 💻 **Multiple Execution Options**: Batch files, PowerShell scripts, and executables
+-  **Multiple Execution Options**: Batch files, PowerShell scripts, and cross-platform support
 
 ## 🏗️ Project Structure
 
@@ -35,12 +34,6 @@ excel-comparison-tool/
 ```
 
 ## 🚀 Quick Start
-
-### 🔐 Security Note
-**Default Password: 1234**
-- The tool is protected with a 4-digit password
-- Default password is `1234` 
-- Change it immediately after first use for security
 
 ### 1. Clone the Repository
 ```bash
@@ -64,50 +57,14 @@ Place your Excel files in the appropriate folders:
 **Option A: Using Batch Files (Windows)**
 - Double-click `run_comparison.bat` for basic comparison
 - Double-click `run_advanced_comparison.bat` for detailed reporting
-- Double-click `change_password.bat` to change the password
-
 **Option B: Using PowerShell Scripts**
 - Right-click → "Run with PowerShell" on `.ps1` files
-- `change_password.ps1` for password management
 
 **Option C: Command Line**
 ```bash
 python test.py                           # Basic comparison
 python excel_comparator_advanced.py     # Advanced with reports
-python test.py --change-password         # Change password
 ```
-
-## � Security Features
-
-### Password Protection
-- **4-digit password** required to access the tool
-- **Default password**: `1234` (change immediately!)
-- **SHA-256 hashing** for secure password storage
-- **3 attempts limit** before access is denied
-- **Hidden input** - password characters are not displayed
-
-### Password Management
-```bash
-# Change password using command line
-python test.py --change-password
-
-# Or use the dedicated utilities:
-change_password.bat      # Windows batch file
-change_password.ps1      # PowerShell script
-change_password.sh       # Unix/Linux shell script
-```
-
-### Security Best Practices
-1. **Change the default password** immediately after installation
-2. **Use a unique 4-digit code** that's not easily guessable
-3. **Keep the password confidential** and share only with authorized users
-4. **Update the password regularly** for enhanced security
-
-### For Developers: Updating Password Hash
-If you need to manually update the password hash in the code:
-1. Run the password change utility to get the new hash
-2. Update the `password_hash` variable in both `test.py` and `excel_comparator_advanced.py`
-3. The hash should be a SHA-256 hex string
 
 ## 📋 Requirements
 

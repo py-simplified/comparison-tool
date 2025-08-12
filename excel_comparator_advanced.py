@@ -7,8 +7,6 @@ from pathlib import Path
 import numpy as np
 from datetime import datetime
 import json
-import getpass
-import hashlib
 
 class ExcelComparatorAdvanced:
     def __init__(self, base_path):
@@ -38,87 +36,6 @@ class ExcelComparatorAdvanced:
             "total_differences": 0,
             "errors": []
         }
-        
-        # Default password (hashed) - Change this in production
-        # Default password is "1234" (hashed with SHA-256)
-        self.password_hash = "9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0"
-    
-    def verify_password(self):
-        """
-        Verify user password before allowing access to the tool
-        
-        Returns:
-            bool: True if password is correct, False otherwise
-        """
-        max_attempts = 3
-        attempts = 0
-        
-        print("🔒 Advanced Excel Comparison Tool - Password Protection")
-        print("=" * 55)
-        
-        while attempts < max_attempts:
-            try:
-                # Use getpass to hide password input
-                password = getpass.getpass(f"Enter 4-digit password (Attempt {attempts + 1}/{max_attempts}): ")
-                
-                # Validate password format
-                if not password.isdigit() or len(password) != 4:
-                    print("❌ Invalid format! Password must be exactly 4 digits.")
-                    attempts += 1
-                    continue
-                
-                # Hash the entered password
-                password_hash = hashlib.sha256(password.encode()).hexdigest()
-                
-                # Compare with stored hash
-                if password_hash == self.password_hash:
-                    print("✅ Password correct! Access granted.")
-                    print()
-                    return True
-                else:
-                    print("❌ Incorrect password!")
-                    attempts += 1
-                    
-            except KeyboardInterrupt:
-                print("\n🚫 Operation cancelled by user.")
-                return False
-            except Exception as e:
-                print(f"❌ Error during password verification: {e}")
-                attempts += 1
-        
-        print(f"🚫 Maximum attempts ({max_attempts}) exceeded. Access denied.")
-        return False
-    
-    def change_password(self):
-        """
-        Allow changing the password (admin function)
-        This should be called separately for security setup
-        """
-        print("🔧 Password Change Utility")
-        print("=" * 30)
-        
-        # Verify current password first
-        if not self.verify_password():
-            return False
-        
-        while True:
-            new_password = getpass.getpass("Enter new 4-digit password: ")
-            
-            if not new_password.isdigit() or len(new_password) != 4:
-                print("❌ Invalid format! Password must be exactly 4 digits.")
-                continue
-            
-            confirm_password = getpass.getpass("Confirm new password: ")
-            
-            if new_password != confirm_password:
-                print("❌ Passwords don't match! Please try again.")
-                continue
-            
-            # Hash and store new password
-            new_hash = hashlib.sha256(new_password.encode()).hexdigest()
-            print(f"✅ New password hash: {new_hash}")
-            print("📝 Update the password_hash variable in the code with this hash.")
-            return True
     
     def get_matching_files(self):
         """
@@ -494,17 +411,6 @@ def main():
     
     # Initialize the comparator
     comparator = ExcelComparatorAdvanced(current_dir)
-    
-    # Check for password change request
-    if len(os.sys.argv) > 1 and os.sys.argv[1] == "--change-password":
-        comparator.change_password()
-        return
-    
-    # Verify password before proceeding
-    if not comparator.verify_password():
-        print("🚫 Access denied. Exiting...")
-        input("Press Enter to exit...")
-        return
     
     # Run the comparison
     comparator.run_comparison()
